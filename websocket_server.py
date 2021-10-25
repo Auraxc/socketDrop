@@ -41,7 +41,16 @@ html = """
     ws.onmessage = function (event) {
         var messages = document.getElementById('messages')
         var message = document.createElement('li')
-        var content = document.createTextNode(event.data)
+        var msg = JSON.parse(event.data)
+        console.log("type", msg.type, event)
+        var msg_type = msg.type
+        if (msg_type == 'text'){
+            var content = document.createTextNode(msg.data)}
+            else {
+                var content = document.createElement('a')
+                content.href = '/file/' + msg.filename
+                content.innerText = msg.filename
+            }
         message.appendChild(content)
         messages.appendChild(message)
     };
@@ -124,7 +133,7 @@ async def create_upload_file(file: UploadFile = File(...)):
         print("save file error", e)
     # return {"filename": file.filename}
 
-@app.get("/file")
+@app.get("/file/{filename}")
 def file_download(filename):
     path = save_path("files")
     file_path = path + filename
