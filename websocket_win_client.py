@@ -1,5 +1,47 @@
+from threading import Thread
+
 import win32clipboard
 import time
+import websocket
+
+
+def on_open():
+    print("### connection ###")
+
+
+class WSClient:
+    def __init__(self, path):
+        self.url = path
+        self.ws = None
+        self.thread = None
+        websocket.enableTrace(True)
+
+    def connect(self):
+        self.ws = websocket.WebSocketApp(self.url,
+                                         on_message=self.on_message,
+                                         on_close=self.on_close,
+                                         on_open=self.on_open)
+        self.thread = Thread(target=self.ws.run_forever)
+        self.thread.start()
+
+    def on_open(self, ws):
+        self.ws.send("Hi")
+        print("### start connection ###")
+
+    def on_message(self, ws, data, callback=None):
+        print("event", data)
+        if callback:
+            callback(data)
+
+    def on_close(self):
+        if self.thread and self.thread.isAlive():
+            print('connection close')
+            self.ws.close()
+            self.thread.join()
+
+    def send(self, data):
+        self.ws.send(data)
+
 
 clip = win32clipboard
 
@@ -53,13 +95,5 @@ def main():
     listen_clipboard()
 
 
-def test_set():
-    path = r"C:\Users\vt\PycharmProjects\socketDrop\websocket_server.py"
-    clipboard_set(clip.CF_UNICODETEXT, path)
-    # clipboard_set(path)
-    # print("set result", result)
-
-
 if __name__ == '__main__':
     main()
-    # test_set()
