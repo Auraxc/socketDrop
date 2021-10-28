@@ -1,5 +1,3 @@
-import time
-
 from websocket_win_client import clipboard_set, clip, WSClient
 
 
@@ -12,11 +10,9 @@ def test_set():
 
 def test_websocket():
     path = 'ws://localhost:8000/ws/msg/12345'
-    ws = WSClient(path)
+    ws = WSClient(path, enableTrance=True)
     ws.connect()
-
-    time.sleep(2)
-    recv_data = ws.on_message(ws, )
+    ws.send("test")
 
 
 if __name__ == '__main__':

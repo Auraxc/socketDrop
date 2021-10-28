@@ -1,3 +1,4 @@
+import json
 from threading import Thread
 
 import win32clipboard
@@ -10,11 +11,11 @@ def on_open():
 
 
 class WSClient:
-    def __init__(self, path):
+    def __init__(self, path, enableTrance=False):
         self.url = path
         self.ws = None
         self.thread = None
-        websocket.enableTrace(True)
+        websocket.enableTrace(enableTrance)
 
     def connect(self):
         self.ws = websocket.WebSocketApp(self.url,
@@ -28,10 +29,13 @@ class WSClient:
         self.ws.send("Hi")
         print("### start connection ###")
 
-    def on_message(self, ws, data, callback=None):
+    def on_message(self, ws, data):
         print("event", data)
-        if callback:
-            callback(data)
+        data = json.loads(data)
+        data_type = data.get("type")
+        msg = data.get("data")
+        if data_type == "text":
+            clipboard_set(clip.CF_UNICODETEXT, msg)
 
     def on_close(self):
         if self.thread and self.thread.isAlive():
@@ -75,24 +79,25 @@ def clipboard_set(format_type, data):
     clip.CloseClipboard()
 
 
-def listen_clipboard():
-    current = clip.GetClipboardSequenceNumber()
+def listen_clipboard(ws):
+    current = clip.GetClipboardSequenceNumber()  # 获取当前剪切板内容的 id
     while True:
-
-        # txt 存放当前剪切板文本
-        current_number = clip.GetClipboardSequenceNumber()
-        if current == current_number:
-            time.sleep(1)
-            continue
-        txt = clipboard_get()
-        current = current_number
-        print(txt)
-        # 检测间隔（延迟0.2秒）
+        # 检测间隔（延迟1秒）
         time.sleep(1)
+        _number = clip.GetClipboardSequenceNumber()
+        if current == _number:  # 比较剪切板内容 id 是否发生变化判断剪切板是否更新
+            continue
+        clip_data = clipboard_get()  # 获取剪切板内容
+        current = _number  # 更新 id
+        print(clip_data)
 
 
 def main():
-    listen_clipboard()
+    path = 'ws://localhost:8000/ws/msg/12345'
+    ws = WSClient(path)
+    ws.connect()
+
+    listen_clipboard(ws)
 
 
 if __name__ == '__main__':
