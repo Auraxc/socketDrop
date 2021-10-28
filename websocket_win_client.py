@@ -1,7 +1,6 @@
 import win32clipboard
 import time
 
-
 clip = win32clipboard
 
 
@@ -34,7 +33,7 @@ def clipboard_set(format_type, data):
     clip.CloseClipboard()
 
 
-def main():
+def listen_clipboard():
     current = clip.GetClipboardSequenceNumber()
     while True:
 
@@ -50,12 +49,15 @@ def main():
         time.sleep(1)
 
 
+def main():
+    listen_clipboard()
+
+
 def test_set():
     path = r"C:\Users\vt\PycharmProjects\socketDrop\websocket_server.py"
     clipboard_set(clip.CF_UNICODETEXT, path)
     # clipboard_set(path)
     # print("set result", result)
-
 
 
 if __name__ == '__main__':
