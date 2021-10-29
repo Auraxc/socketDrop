@@ -50,11 +50,20 @@ class SocketDropClient:
             self.current_clip_type = data_type
             self.clipboard_set(self.clip.CF_UNICODETEXT, msg)
 
-    def on_close(self):
-        if self.thread and self.thread.isAlive():
-            print('connection close')
-            self.ws.close()
-            self.thread.join()
+    def on_close(self, ws, states_code, close_msg):
+        '''
+                on_close: function
+            Callback object which is called when connection is closed.
+            on_close has 3 arguments.
+            The 1st argument is this class object.
+            The 2nd argument is close_status_code.
+            The 3rd argument is close_msg.
+        '''
+        print("connection close, please check the internet and reconnect")
+        self.ws.close()
+        # if self.thread and self.thread.is_alive():
+        #     self.ws.close()
+        #     self.thread.join()
 
     def send(self, data):
         self.ws.send(data)

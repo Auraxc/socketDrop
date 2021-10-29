@@ -94,8 +94,8 @@ file_manager = ConnectionManager()
 
 @app.get("/")
 async def get():
-    return HTMLResponse(html)
-
+    # return HTMLResponse(html)
+    return FileResponse("index.html")
 
 @app.websocket("/ws/msg/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
