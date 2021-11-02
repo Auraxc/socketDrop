@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+</head>
+<body>
+<h1>WebSocket Chat</h1>
+<h2>Your ID: <span id="ws-id"></span></h2>
+<form action="" onsubmit="sendMessage(event)">
+    <textarea type="text" id="messageText" autocomplete="off"></textarea>
+    <button>Send</button>
+</form>
+
+<iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
+
+<form action="/upload/" method="post" enctype="multipart/form-data" target="dummyframe">
+    <input name="file" id="file" type="file">
+    <input type="submit" value="uploadFile上传">
+</form>
+
+<ul id='messages'>
+</ul>
+<script>
+    var client_id = Date.now()
+    var host = location.host
+    document.querySelector("#ws-id").textContent = client_id;
+    var ws = new WebSocket(`ws://${host}/ws/msg/${client_id}`);
+
+    ws.onmessage = function (event) {
+        var messages = document.getElementById('messages');
+        var message = document.createElement('li');
+        message.style = "white-space: pre-wrap;"
+
+
+        var msg = JSON.parse(event.data);
+        var msgType = msg.type;
+        var msgData = msg.data;
+        var msgClientId = msg.client_id;
+        if (msgType === 'text') {
+            var content = document.createTextNode(msg.data)
+        } else {
+            var photos = ["jpg", "bmp"]
+
+            var path = '/file/' + msgData
+            var suffix = path.split('.').pop()
+            console.log("suffix", suffix)
+            console.log(suffix in photos)
+            if (photos.includes(suffix)) {
+                console.log("create photo")
+                message = document.createElement('div');
+
+                content = document.createElement('img')
+                content.height = 200;
+                content.src = path
+                content.class = "photo"
+            } else {
+                console.log("create filepath")
+                content = document.createElement('a')
+                content.href = path
+                content.innerText = msgData
+            }
+        }
+        message.appendChild(content)
+        messages.appendChild(message)
+    };
+
+    function sendMessage(event) {
+        var input = document.getElementById("messageText")
+        var data = input.value;
+        form = {"type": "text", "data": data, "client_id": client_id}
+        ws.send(JSON.stringify(form))
+        input.value = ''
+        event.preventDefault()
+    }
+</script>
+</body>
+</html>

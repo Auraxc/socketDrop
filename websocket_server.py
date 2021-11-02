@@ -57,8 +57,9 @@ html = """
 
     function sendMessage(event) {
         var input = document.getElementById("messageText")
-        var data = input.value
-        ws.send(data)
+        var data = input.value;
+        form = {"type":"text", "data":data, "client_id":client_id}
+        ws.send(JSON.stringify(form))
         input.value = ''
         event.preventDefault()
     }
@@ -93,8 +94,8 @@ file_manager = ConnectionManager()
 
 @app.get("/")
 async def get():
-    return HTMLResponse(html)
-
+    # return HTMLResponse(html)
+    return FileResponse("index.html")
 
 @app.websocket("/ws/msg/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
@@ -102,8 +103,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
     try:
         while True:
-            data = await websocket.receive_text()
-            form = {"type": "text", "data": data}
+            json_data = await websocket.receive_text()
+            data = json.loads(json_data)
+            form = {
+                "type": data.get("type"),
+                "data": data.get("data"),
+                "client_id": client_id
+            }
             await manager.broadcast(json.dumps(form))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -127,11 +133,12 @@ async def create_upload_file(file: UploadFile = File(...)):
         filepath = path + filename
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        form = {"type": "file", "filename": filename, "path": path}
+        form = {"type": "file", "data": filename, "path": path}
         await manager.broadcast(json.dumps(form))
     except Exception as e:
         print("save file error", e)
     # return {"filename": file.filename}
+
 
 @app.get("/file/{filename}")
 def file_download(filename):
