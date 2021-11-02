@@ -2,6 +2,9 @@ import json
 import os.path
 from threading import Thread
 import urllib.request as request
+from urllib import parse
+import requests
+
 import win32clipboard
 import time
 import websocket
@@ -16,7 +19,7 @@ def on_open():
 class SocketDropClient:
     def __init__(self, path, domain=None, enableTrance=False):
         self.clip = win32clipboard
-        self.type_dict = [self.clip.CF_UNICODETEXT]
+        self.type_dict = [self.clip.CF_UNICODETEXT, self.clip.CF_HDROP]
         self.client_id = int(time.time())
         self.domain = domain
         self.url = path
@@ -24,6 +27,7 @@ class SocketDropClient:
         self.thread = None
         self.current_clip_type, self.current_clip_data = self.clipboard_get()
         self.form = {"type": "", "data": "", "client_id": self.client_id}
+        self.upload_path = client_config.DOMAIN + "/upload/"
         print("client id", self.client_id)
 
         websocket.enableTrace(enableTrance)
@@ -47,15 +51,16 @@ class SocketDropClient:
         msg = data.get("data")
         send_client_id = data.get("client_id")
         print("client id", send_client_id, self.client_id, data_type)
-        if send_client_id != self.client_id and data_type == "text":
-            self.current_clip_data = msg
-            self.current_clip_type = data_type
-            self.clipboard_set(self.clip.CF_UNICODETEXT, msg)
-        elif data_type == "file":
-            filename = msg
-            url = self.domain + "/file/" + filename
-            print("url", url)
-            self.download_file(url, filename)
+        if send_client_id != self.client_id:
+            if data_type == "text":
+                self.current_clip_data = msg
+                self.current_clip_type = data_type
+                self.clipboard_set(self.clip.CF_UNICODETEXT, msg)
+            elif data_type == "file":
+                filename = msg
+                url = self.domain + "/file/" + filename
+                print("url", url)
+                self.download_file(url, filename)
 
     def download_file(self, url, filename):
         save_path = client_config.SAVE_PATH
@@ -113,9 +118,18 @@ class SocketDropClient:
             else:
                 log("检测到了剪切板变化")
                 self.current_clip_data = clip_data
-                if clip_type == 13:
+                if clip_type == self.clip.CF_UNICODETEXT:
                     self.form["type"] = "text"
                     self.form["data"] = clip_data
+                    self.send(json.dumps(self.form))
+                elif clip_type == self.clip.CF_HDROP:
+                    self.form["type"] = "file"
+                    filename = clip_data[0].split("\\")[-1]  # 可以多文件一起发送，暂时先发送一个
+                    print("filename", filename)
+                    files = {'file': (filename, open(clip_data[0], 'rb'))}
+                    requests.post(self.upload_path, files=files, params={"client_id": self.client_id})
+                    self.form["data"] = filename
+
                     self.send(json.dumps(self.form))
 
 

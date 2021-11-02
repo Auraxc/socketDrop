@@ -97,6 +97,7 @@ async def get():
     # return HTMLResponse(html)
     return FileResponse("index.html")
 
+
 @app.websocket("/ws/msg/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.connect(websocket)
@@ -125,7 +126,7 @@ def save_path(folder):
 
 
 @app.post("/upload/")
-async def create_upload_file(file: UploadFile = File(...)):
+async def create_upload_file(client_id: int, file: UploadFile = File(...)):
     try:
         path = save_path("files")
         print("path", path)
@@ -133,7 +134,7 @@ async def create_upload_file(file: UploadFile = File(...)):
         filepath = path + filename
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        form = {"type": "file", "data": filename, "path": path}
+        form = {"type": "file", "data": filename, "client_id": client_id}
         await manager.broadcast(json.dumps(form))
     except Exception as e:
         print("save file error", e)
