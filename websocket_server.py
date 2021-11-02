@@ -133,7 +133,7 @@ async def create_upload_file(file: UploadFile = File(...)):
         filepath = path + filename
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        form = {"type": "file", "filename": filename, "path": path}
+        form = {"type": "file", "data": filename, "path": path}
         await manager.broadcast(json.dumps(form))
     except Exception as e:
         print("save file error", e)

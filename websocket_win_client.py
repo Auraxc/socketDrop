@@ -1,9 +1,12 @@
 import json
+import os.path
 from threading import Thread
-
+import urllib.request as request
 import win32clipboard
 import time
 import websocket
+
+import client_config
 
 
 def on_open():
@@ -11,11 +14,11 @@ def on_open():
 
 
 class SocketDropClient:
-    def __init__(self, path, enableTrance=True):
+    def __init__(self, path, domain=None, enableTrance=False):
         self.clip = win32clipboard
         self.type_dict = [self.clip.CF_UNICODETEXT]
         self.client_id = int(time.time())
-
+        self.domain = domain
         self.url = path
         self.ws = None
         self.thread = None
@@ -44,11 +47,25 @@ class SocketDropClient:
         msg = data.get("data")
         send_client_id = data.get("client_id")
         print("client id", send_client_id, self.client_id, data_type)
-        if send_client_id != self.client_id:
-            print("eee")
+        if send_client_id != self.client_id and data_type == "text":
             self.current_clip_data = msg
             self.current_clip_type = data_type
             self.clipboard_set(self.clip.CF_UNICODETEXT, msg)
+        elif data_type == "file":
+            filename = msg
+            url = self.domain + "/file/" + filename
+            print("url", url)
+            self.download_file(url, filename)
+
+    def download_file(self, url, filename):
+        save_path = client_config.SAVE_PATH
+        if not os.path.exists(save_path):
+            print("文件夹不存在，建立文件夹：", save_path)
+            os.mkdir(save_path)
+        path = os.path.join(save_path, filename)
+        print("开始下载, 保存到", path)
+        request.urlretrieve(url, path)
+        print("下载完成")
 
     def on_close(self, ws, states_code, close_msg):
         '''
@@ -107,8 +124,9 @@ def log(*args, **kwargs):
 
 
 def main():
-    path = 'ws://localhost:8000/ws/msg/'
-    ws = SocketDropClient(path)
+    websocket_path = client_config.WEBSOCKET_PATH
+    domain = client_config.DOMAIN
+    ws = SocketDropClient(websocket_path, domain)
     ws.connect()
     ws.listen_clipboard()
 

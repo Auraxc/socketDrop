@@ -25,19 +25,40 @@
     var host = location.host
     document.querySelector("#ws-id").textContent = client_id;
     var ws = new WebSocket(`ws://${host}/ws/msg/${client_id}`);
+
     ws.onmessage = function (event) {
-        var messages = document.getElementById('messages')
-        var message = document.createElement('li')
+        var messages = document.getElementById('messages');
+        var message = document.createElement('li');
         message.style = "white-space: pre-wrap;"
-        var msg = JSON.parse(event.data)
-        console.log("type", msg.type, event)
-        var msg_type = msg.type
-        if (msg_type == 'text') {
+
+
+        var msg = JSON.parse(event.data);
+        var msgType = msg.type;
+        var msgData = msg.data;
+        var msgClientId = msg.client_id;
+        if (msgType === 'text') {
             var content = document.createTextNode(msg.data)
         } else {
-            var content = document.createElement('a')
-            content.href = '/file/' + msg.filename
-            content.innerText = msg.filename
+            var photos = ["jpg", "bmp"]
+
+            var path = '/file/' + msgData
+            var suffix = path.split('.').pop()
+            console.log("suffix", suffix)
+            console.log(suffix in photos)
+            if (photos.includes(suffix)) {
+                console.log("create photo")
+                message = document.createElement('div');
+
+                content = document.createElement('img')
+                content.height = 200;
+                content.src = path
+                content.class = "photo"
+            } else {
+                console.log("create filepath")
+                content = document.createElement('a')
+                content.href = path
+                content.innerText = msgData
+            }
         }
         message.appendChild(content)
         messages.appendChild(message)
