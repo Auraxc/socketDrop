@@ -2,12 +2,12 @@ import json
 import os.path
 from threading import Thread
 import urllib.request as request
-from urllib import parse
 import requests
 
 import win32clipboard
 import time
 import websocket
+from websocket import WebSocketConnectionClosedException
 
 import client_config
 
@@ -20,6 +20,7 @@ class SocketDropClient:
     def __init__(self, path, domain=None, enableTrance=False):
         self.clip = win32clipboard
         self.type_dict = [self.clip.CF_UNICODETEXT, self.clip.CF_HDROP]
+        self.file_size = 83886080
         self.client_id = int(time.time())
         self.domain = domain
         self.url = path
@@ -62,7 +63,8 @@ class SocketDropClient:
                 print("url", url)
                 self.download_file(url, filename)
 
-    def download_file(self, url, filename):
+    @staticmethod
+    def download_file(url, filename):
         save_path = client_config.SAVE_PATH
         if not os.path.exists(save_path):
             print("文件夹不存在，建立文件夹：", save_path)
@@ -73,33 +75,30 @@ class SocketDropClient:
         print("下载完成")
 
     def on_close(self, ws, states_code, close_msg):
-        '''
-                on_close: function
-            Callback object which is called when connection is closed.
-            on_close has 3 arguments.
-            The 1st argument is this class object.
-            The 2nd argument is close_status_code.
-            The 3rd argument is close_msg.
-        '''
-        print("connection close, please check the internet and reconnect")
-        self.ws.close()
-        # if self.thread and self.thread.is_alive():
-        #     self.ws.close()
-        #     self.thread.join()
+
+        print("### close connection ###")
+        if self.thread and self.thread.is_alive():
+            self.ws.close()
+            self.thread.join()
 
     def send(self, data):
         self.ws.send(data)
 
     def clipboard_get(self):
         """获取剪贴板数据"""
-        self.clip.OpenClipboard()
-        clip_type = self.clip.GetPriorityClipboardFormat(self.type_dict)
-        if clip_type != -1:
-            clip_data = self.clip.GetClipboardData(clip_type)
-        else:
-            clip_data = None
-        self.clip.CloseClipboard()
-        return clip_type, clip_data
+        try:
+            self.clip.OpenClipboard()
+            clip_type = self.clip.GetPriorityClipboardFormat(self.type_dict)
+            if clip_type != -1:
+                clip_data = self.clip.GetClipboardData(clip_type)
+            else:
+                clip_data = None
+            self.clip.CloseClipboard()
+
+            return clip_type, clip_data
+        except Exception as e:
+            print("clipboard get error:", e)
+            return None, ""
 
     def clipboard_set(self, _type, data):
         """设置剪贴板数据"""
@@ -123,14 +122,20 @@ class SocketDropClient:
                     self.form["data"] = clip_data
                     self.send(json.dumps(self.form))
                 elif clip_type == self.clip.CF_HDROP:
+                    file_path = clip_data[0]
                     self.form["type"] = "file"
-                    filename = clip_data[0].split("\\")[-1]  # 可以多文件一起发送，暂时先发送一个
-                    print("filename", filename)
-                    files = {'file': (filename, open(clip_data[0], 'rb'))}
-                    requests.post(self.upload_path, files=files, params={"client_id": self.client_id})
-                    self.form["data"] = filename
-
-                    self.send(json.dumps(self.form))
+                    file_size = os.path.getsize(file_path)
+                    print("file size", file_size)
+                    if file_size <= self.file_size:
+                        print("too large file")
+                        filename = file_path.split("\\")[-1]  # 可以多文件一起发送，暂时先发送一个
+                        print("filename", filename)
+                        files = {'file': (filename, open(file_path, 'rb'))}
+                        requests.post(self.upload_path, files=files, params={"client_id": self.client_id})
+                        self.form["data"] = filename
+                    else:
+                        print("too large size file")
+                    # self.send(json.dumps(self.form))
 
 
 def log(*args, **kwargs):

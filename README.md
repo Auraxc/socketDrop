@@ -1,6 +1,5 @@
 # socketDrop
-使用中间服务器，通过 websocket 在设备之间分享文件和文本，支持网页版，也可使用客户端自动共享剪切板，自动复制文件
-share files and text with all device, windows, mac, ios
+通过 websocket 在设备之间分享文件和文本，支持网页版，也可使用客户端自动共享剪切板，自动复制文件 share files and text with all device, windows, mac, ios
 
 
 # 网页版：
@@ -23,3 +22,4 @@ share files and text with all device, windows, mac, ios
 ## TODO:
 
 - 自动监听剪切板，自动识别并复制文件
+- 添加身份验证

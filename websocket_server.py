@@ -4,7 +4,7 @@ import shutil
 from typing import List
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Header, Request
 from fastapi.responses import HTMLResponse
 from starlette.responses import FileResponse
 
@@ -126,16 +126,22 @@ def save_path(folder):
 
 
 @app.post("/upload/")
-async def create_upload_file(client_id: int, file: UploadFile = File(...)):
+async def create_upload_file(client_id: int, request: Request, file: UploadFile = File(...)):
     try:
         path = save_path("files")
-        print("path", path)
-        filename = file.filename
-        filepath = path + filename
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        form = {"type": "file", "data": filename, "client_id": client_id}
-        await manager.broadcast(json.dumps(form))
+        size = int(request.headers.get("content-length", 1000000))
+        if size <= 83886080:
+
+            print("file size", size)
+            filename = file.filename
+            filepath = path + filename
+            with open(filepath, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            form = {"type": "file", "data": filename, "client_id": client_id}
+            await manager.broadcast(json.dumps(form))
+        else:
+            print("too large file")
+            return
     except Exception as e:
         print("save file error", e)
     # return {"filename": file.filename}
