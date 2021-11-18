@@ -14,7 +14,8 @@
 <iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
 
 <form action="/upload/" method="post" enctype="multipart/form-data" target="dummyframe">
-    <input name="file" id="file" type="file">
+    <input name="client_id" id="input-client-id" type="text" hidden>
+    <input name="file" id="file" type="file"/>
     <input type="submit" value="uploadFile上传">
 </form>
 
@@ -25,6 +26,7 @@
     var host = location.host
     document.querySelector("#ws-id").textContent = client_id;
     var ws = new WebSocket(`ws://${host}/ws/msg/${client_id}`);
+    document.querySelector("#input-client-id").value = client_id;
 
     ws.onmessage = function (event) {
         var messages = document.getElementById('messages');
@@ -39,7 +41,7 @@
         if (msgType === 'text') {
             var content = document.createTextNode(msg.data)
         } else {
-            var photos = ["jpg", "bmp"]
+            var photos = ["jpg", "bmp", "gif"]
 
             var path = '/file/' + msgData
             var suffix = path.split('.').pop()

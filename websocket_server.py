@@ -4,8 +4,7 @@ import shutil
 from typing import List
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Header, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Request, Form
 from starlette.responses import FileResponse
 
 app = FastAPI()
@@ -126,8 +125,10 @@ def save_path(folder):
 
 
 @app.post("/upload/")
-async def create_upload_file(client_id: int, request: Request, file: UploadFile = File(...)):
+async def create_upload_file(request: Request, client_id=Form(...), file: UploadFile = File(...)):
     try:
+        # client_id = form.get("client_id")
+        print("cid", client_id)
         path = save_path("files")
         size = int(request.headers.get("content-length", 1000000))
         if size <= 83886080:
@@ -155,5 +156,5 @@ def file_download(filename):
 
 
 if __name__ == '__main__':
-    # uvicorn.run(app, host="0.0.0.0", port=8000, debug=True)
+    # uvicorn.run(app, host="0.0.0.0", port=8000, debug=True)  # 上传到服务器时用这行
     uvicorn.run(app, host="localhost", port=8000, debug=True)

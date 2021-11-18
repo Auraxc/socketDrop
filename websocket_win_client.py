@@ -7,7 +7,6 @@ import requests
 import win32clipboard
 import time
 import websocket
-from websocket import WebSocketConnectionClosedException
 
 import client_config
 
